@@ -24,7 +24,6 @@ func (c *Cloner) runManualCopyPipeline(ctx context.Context, originPeer, destinyP
 	return nil
 }
 
-// fetchFullMessages busca as mensagens completas do chat de origem.
 func (c *Cloner) fetchFullMessages(ctx context.Context, wg *sync.WaitGroup, originPeer tg.InputPeerClass, messagesChan chan<- *tg.Message) {
 	defer wg.Done()
 	defer close(messagesChan)
@@ -50,18 +49,32 @@ func (c *Cloner) fetchFullMessages(ctx context.Context, wg *sync.WaitGroup, orig
 			log.Printf("Não foi possível converter o histórico. Fim da busca.")
 			return
 		}
+
 		if len(messages.Messages) == 0 {
 			log.Println("Nenhuma mensagem nova encontrada. Busca finalizada.")
 			return
 		}
 
+		// 1. Armazenar as mensagens em uma fatia temporária
+		batchMessages := make([]*tg.Message, 0, len(messages.Messages))
 		for _, msg := range messages.Messages {
 			if m, ok := msg.(*tg.Message); ok {
-				messagesChan <- m
+				batchMessages = append(batchMessages, m)
 				offsetID = m.ID
 			}
 		}
-		log.Printf("Buscadas %d mensagens completas. Último ID: %d", len(messages.Messages), offsetID)
+
+		// 2. Inverter a ordem da fatia
+		for i, j := 0, len(batchMessages)-1; i < j; i, j = i+1, j-1 {
+			batchMessages[i], batchMessages[j] = batchMessages[j], batchMessages[i]
+		}
+
+		// 3. Enviar as mensagens na ordem correta para o canal
+		for _, msg := range batchMessages {
+			messagesChan <- msg
+		}
+
+		log.Printf("Buscadas e ordenadas %d mensagens completas. Último ID processado: %d", len(messages.Messages), offsetID)
 	}
 }
 
@@ -99,7 +112,7 @@ func (c *Cloner) processManualCopyMessages(ctx context.Context, wg *sync.WaitGro
 				}
 				continue
 			}
-			
+
 			log.Printf("Upload da mídia da msg ID %d concluído.", msg.ID)
 
 			_, err = c.api.MessagesSendMedia(ctx, &tg.MessagesSendMediaRequest{

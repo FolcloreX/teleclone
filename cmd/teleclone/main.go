@@ -9,8 +9,10 @@ import (
 
 	"github.com/FolcloreX/teleclone/internal/cloner"
 	"github.com/FolcloreX/teleclone/internal/config"
+	"github.com/FolcloreX/teleclone/internal/tgclient"
 	"github.com/gotd/td/session"
 	"github.com/gotd/td/telegram"
+	"github.com/gotd/td/telegram/auth"
 )
 
 func main() {
@@ -29,16 +31,25 @@ func main() {
 	})
 
 	if err := client.Run(ctx, func(ctx context.Context) error {
+		authFlow := auth.NewFlow(
+			tgclient.NewAuthenticator(cfg),
+			auth.SendCodeOptions{},
+		)
+		if err := client.Auth().IfNecessary(ctx, authFlow); err != nil {
+			return fmt.Errorf("falha na autenticação: %w", err)
+		}
 
 		log.Println("Autenticação bem-sucedida!")
 
-		// Starts the process of clonage
-		clonerInstance := cloner.New(client, cfg)
+		clonerInstance, err := cloner.New(client, cfg)
+		if err != nil {
+			return fmt.Errorf("não foi possível criar a instância do cloner: %w", err)
+		}
+
 		if err := clonerInstance.Start(ctx); err != nil {
 			return fmt.Errorf("o processo de clonagem falhou: %w", err)
 		}
 
-		// After the clone process cancel the context
 		log.Println("Aplicação encerrando de forma limpa.")
 		cancel()
 		return nil

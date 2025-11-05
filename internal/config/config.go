@@ -15,6 +15,7 @@ type Config struct {
 	Password      string
 	OriginChatID  int64
 	DestinyChatID int64
+	KeepFiles     bool
 }
 
 func Load() (*Config, error) {
@@ -37,6 +38,12 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("DESTINY_CHAT_ID inválido: %w", err)
 	}
 
+	keepFiles, err := strconv.ParseBool(os.Getenv("KEEP_DOWNLOADED_FILES"))
+	if err != nil {
+		// Se a flag estiver ausente ou mal formatada, assumimos 'false' por segurança.
+		keepFiles = false
+	}
+
 	cfg := &Config{
 		APIID:         apiID,
 		APIHash:       os.Getenv("API_HASH"),
@@ -44,6 +51,7 @@ func Load() (*Config, error) {
 		Password:      os.Getenv("PASSWORD"),
 		OriginChatID:  originChatID,
 		DestinyChatID: destinyChatID,
+		KeepFiles:     keepFiles,
 	}
 
 	if cfg.APIHash == "" || cfg.Phone == "" {

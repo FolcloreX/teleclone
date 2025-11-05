@@ -1,11 +1,9 @@
-// internal/cloner/cloner.go
 package cloner
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"errors"
 
 	"github.com/FolcloreX/teleclone/internal/config"
 	"github.com/FolcloreX/teleclone/internal/storage"
@@ -13,7 +11,6 @@ import (
 	"github.com/gotd/td/tg"
 )
 
-// Cloner é o ponto central que gerencia os pipelines
 type Cloner struct {
 	client  *telegram.Client
 	api     *tg.Client
@@ -90,7 +87,7 @@ func (c *Cloner) Start(ctx context.Context) error {
 		log.Println("======================================================================")
 		log.Printf("AVISO: Grupo de origem '%s' é PROTEGIDO. Iniciando modo de CÓPIA MANUAL.", originChannel.Title)
 		log.Println("======================================================================")
-		return errors.New("grupo de origem é protegido contra encaminhamento")
+		return c.runManualCopyPipeline(ctx, originInputPeer, destinyInputPeer)
 	}
 
 	log.Printf("Grupo de origem '%s' permite encaminhamento. Iniciando modo de ENCAMINHAMENTO.", originChannel.Title)
