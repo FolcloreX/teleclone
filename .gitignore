@@ -1,5 +1,10 @@
-# Created by https://www.toptal.com/developers/gitignore/api/python
-# Edit at https://www.toptal.com/developers/gitignore?templates=python
+# database
+*.db
+
+# specific configurations folder
+download
+logs 
+profiles
 
 # Telegram bot Sessions
 *.session*
